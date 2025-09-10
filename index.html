@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Nifty & Sensex Live Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 22px; }
+    .card { border-radius:8px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.08); margin-bottom:12px; width: 360px;}
+    h2{margin:0 0 8px 0}
+    .price { font-size: 28px; font-weight:700; }
+    .signal { font-weight:700; padding:6px 10px; border-radius:6px; display:inline-block; margin-top:8px }
+  </style>
+</head>
+<body>
+  <h1>Live Nifty & Sensex Dashboard</h1>
+  <div id="nifty" class="card"></div>
+  <div id="sensex" class="card"></div>
+  <script>
+    function renderCard(item, containerId) {
+      const price = item.regularMarketPrice.toLocaleString('en-IN');
+      const change = (item.regularMarketChangePercent ?? 0).toFixed(2);
+      const sig = item.signal;
+      const rsi = item.rsi ? item.rsi.toFixed(2) : "n/a";
+
+      let color = "#444";
+      if (sig.includes("BUY")) color = "#08660D";
+      if (sig.includes("SELL")) color = "#9B1C1C";
+      if (sig.includes("OVER")) color = "#B7791F";
+
+      document.getElementById(containerId).innerHTML = `
+        <h2>${item.shortName} · ${item.symbol}</h2>
+        <div class="price">₹ ${price} <small style="color:${change>=0?'green':'red'}">(${change}%)</small></div>
+        <div>Signal: <span class="signal" style="background:${color};color:white">${sig}</span></div>
+        <div>RSI(14): ${rsi}</div>
+        <small>Updated: ${new Date().toLocaleTimeString()}</small>
+      `;
+    }
+
+    async function fetchAndUpdate(){
+      const r = await fetch('/api/quotes');
+      const j = await r.json();
+      if (!j.ok) return;
+      const results = j.data?.quoteResponse?.result || [];
+      results.forEach(item => {
+        if (item.symbol === '^NSEI') renderCard(item, 'nifty');
+        if (item.symbol === '^BSESN') renderCard(item, 'sensex');
+      });
+    }
+    fetchAndUpdate();
+    setInterval(fetchAndUpdate, 3000);
+  </script>
+</body>
+</html>
